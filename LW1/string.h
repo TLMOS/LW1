@@ -25,4 +25,6 @@ struct String* reversed(struct String* s);
 struct String* concatenate(struct String* s1, struct String* s2);
 struct String* subString(struct String* s, size_t i, size_t j);
 
+void deleteSubString(struct String* s, size_t i, size_t j);
+
 void encode(struct String* s, void* (*f)(void* x));

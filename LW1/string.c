@@ -152,6 +152,24 @@ struct String* subString(struct String* s, size_t i, size_t j) {
 	return s_sub;
 }
 
+void deleteSubString(struct String* s, size_t a, size_t b) {
+	size_t size = s->size - (b - a + 1);
+	void* values = malloc(size * s->element_size);
+	for (int i = 0; i < a; i++) {
+		int8_t* src = (int8_t*)s->values + i * s->element_size;
+		int8_t* dest = (int8_t*)values + i * s->element_size;
+		memcpy(dest, src, s->element_size);
+	}
+	for (int i = 0; i < s->size - b - 1; i++) {
+		int8_t* src = (int8_t*)s->values + (b + 1 + i) * s->element_size;
+		int8_t* dest = (int8_t*)values + (a + i) * s->element_size;
+		memcpy(dest, src, s->element_size);
+	}
+	free(s->values);
+	s->size = size;
+	s->values = values;
+}
+
 void encode(struct String* s, void* (*f)(void* x)) {
 	for (int i = 0; i < s->size; i++) {
 		void* p = f(getPointer(s, i));

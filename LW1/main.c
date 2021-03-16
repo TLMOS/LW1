@@ -82,6 +82,9 @@ void launchInterpreter() {
             else
                 printf("Error:  %d is out of bounds of string.\n", idx);
         }
+        else if (!strcmp(command, "size")) {
+            printf("Info:   %d\n", getSize(s));
+        }
         else if (!strcmp(command, "equals")) { // equals
             char values[256];
             for (int i = 0; i < 256; i++)
@@ -169,6 +172,16 @@ void launchInterpreter() {
         }
         else if (!strcmp(command, "caps")) { // encode + makeItCaps
             encode(s, makeItCaps);
+        }
+        else if (!strcmp(command, "del")) {
+            int a = 0;
+            int b = 0;
+            scanf_s(" %d", &a);
+            scanf_s(" %d", &b);
+            if (a < getSize(s) && b < getSize(s) && a >= 0 && b >= 0)
+                deleteSubString(s, a, b);
+            else
+                printf("Error:  %d is out of bounds of string.\n", max(a, b));
         }
         else if (!strcmp(command, "test")) { // autoTestAll
             int n_tests = 0;
