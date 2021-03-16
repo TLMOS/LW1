@@ -5,7 +5,8 @@
 #include "string.h"
 #include "char_string.h"
 
-int autoTestCreateAndGet(int n_tests, size_t max_size, unsigned int seed) {
+int autoTestCreate(int n_tests, size_t max_size, unsigned int seed) {
+	//Assuming getPointer and getSize work correctly
 	if (!seed)
 		seed = time(NULL);
 	srand(seed);
@@ -15,61 +16,57 @@ int autoTestCreateAndGet(int n_tests, size_t max_size, unsigned int seed) {
 	int result = 1;
 
 	size_t size;
-	size_t element_size = sizeof(int);
-	int zero = 0;
+	int zero_int = 0;
+	char zero_char = ' ';
 	struct String* s;
 
-	//Randomly Test createZeros
+	//Random tests, int, createZeros
 	for (int test_i = 0; test_i < n_tests; test_i++) {
 		size = rand(max_size);
-		s = createZeros(size, element_size, (void*)&zero);
+		s = createZeros(size, sizeof(int), (void*)&zero_int);
 		//Size mismatch check
 		if (getSize(s) != size) {
-			printf("Error: Size mismatch in createZeros on random values. ");
+			printf("Error: (Random) Wrong size in createZeros. ");
 			printf("Expected %d, got %d.\n", size, getSize(s));
 			result = 0;
 		}
 		//Value mismatch check
 		for (int i = 0; i < size; i++) {
-			int* x = (int*)get(s, i);
-			if (*x != zero) {
-				printf("Error: Value mismatch in createZeros on random values. ");
-				printf("Expected %d, got %d.\n", zero, *x);
+			int* x = (int*)getPointer(s, i);
+			if (*x != zero_int) {
+				printf("Error: (Random) Value mismatch in createZeros. ");
+				printf("Expected %d, got %d.\n", zero_int, *x);
 				result = 0;
-				free(x);
 				break;
 			}
-			free(x);
 		}
 		freeString(s);
 		if (!result)
 			break;
 	}
 
-	//Randomly test createFromValues
+	//Random tests, int, createFromValues
 	for (int test_i = 0; test_i < n_tests; test_i++) {
 		size = rand(max_size);
 		int* values = malloc(size * sizeof(int));
 		for (int i = 0; i < size; i++)
 			values[i] = rand();
-		s = createFromValues(size, element_size, (void*)&zero, (void*)values);
+		s = createFromValues(size, sizeof(int), (void*)&zero_int, (void*)values);
 		//Size mismatch check
 		if (getSize(s) != size) {
-			printf("Error: Size mismatch in createFromValues on random values. ");
+			printf("Error: (Random) Wrong size in createFromValues. ");
 			printf("Expected %d, got %d.\n", size, getSize(s));
 			result = 0;
 		}
 		//Value mismatch check
 		for (int i = 0; i < size; i++){
-			int* x = (int*)get(s, i);
+			int* x = (int*)getPointer(s, i);
 			if (*x != values[i]) {
-				printf("Error: Value mismatch in createFromValues on random values. ");
+				printf("Error: (Random) Value mismatch in createFromValues. ");
 				printf("Expected %d, got %d.\n", values[i], *x);
 				result = 0;
-				free(x);
 				break;
 			}
-			free(x);
 		}
 		free(values);
 		freeString(s);
@@ -77,16 +74,80 @@ int autoTestCreateAndGet(int n_tests, size_t max_size, unsigned int seed) {
 			break;
 	}
 
-	//Boundary values (Sizes of 0 and 1)
-	s = createZeros(0, element_size, (void*)&zero);
-	freeString(s);
-	s = createFromValues(0, element_size, (void*)&zero, NULL);
-	freeString(s);
-	s = createZeros(1, element_size, (void*)&zero);
-	freeString(s);
-	int x = 1;
-	s = createFromValues(1, element_size, (void*)&zero, (void*)&x);
-	freeString(s);
+	//Other tests
+	struct String* s1;
+	struct String* s2;
+	struct String* s3;
+
+	//Test 1
+	freeString(createZeros(0, sizeof(int), (void*)&zero_int));
+	freeString(createZeros(0, sizeof(char), (void*)&zero_char));
+	freeString(createZerosChar(0));
+
+	//Test 2
+	int x_int = 2;
+	char x_char = 'a';
+	s1 = createFromValues(1, sizeof(int), (void*)&zero_int, &x_int);
+	s2 = createFromValues(1, sizeof(char), (void*)&zero_char, &x_char);
+	s3 = createFromValuesChar(1, &x_char);
+	if (getSize(s1) != 1 || getSize(s2) != 1 || getSize(s3) != 1) {
+		printf("Error: (Test 2) Wrong size.\n");
+		result = 0;
+	}
+	else if (*(int*)getPointer(s1, 0) != x_int ||
+		*(char*)getPointer(s2, 0) != x_char ||
+		*(char*)getPointer(s3, 0) != x_char) {
+		printf("Error: (Test 2) Value mismatch.\n");
+		result = 0;
+	}
+	freeString(s1);
+	freeString(s2);
+	freeString(s3);
+
+	//Test 3
+	size = 3;
+	s1 = createZeros(size, sizeof(int), (void*)&zero_int);
+	s2 = createZeros(size, sizeof(char), (void*)&zero_char);
+	s3 = createZerosChar(size);
+	if (getSize(s1) != size || getSize(s2) != size || getSize(s3) != size) {
+		printf("Error: (Test 3) Wrong size.\n");
+		result = 0;
+	}
+	for (int i = 0; i < size; i++) {
+		if (*(int*)getPointer(s1, i) != zero_int ||
+			*(char*)getPointer(s2, i) != zero_char ||
+			*(char*)getPointer(s3, i) != zero_char) {
+			printf("Error: (Test 3) Value mismatch.\n");
+			result = 0;
+		}
+	}
+	freeString(s1);
+	freeString(s2);
+	freeString(s3);
+
+	//Test 4
+	size = 3;
+	int v_int[] = {1, 2, 3};
+	char v_char[] = "abc";
+	s1 = createFromValues(size, sizeof(int), (void*)&zero_int, (void*)v_int);
+	s2 = createFromValues(size, sizeof(char), (void*)&zero_char, (void*)v_char);
+	s3 = createFromValuesChar(size, v_char);
+	if (getSize(s1) != size || getSize(s2) != size || getSize(s3) != size) {
+		printf("Error: (Test 4) Wrong size.\n");
+		result = 0;
+	}
+	for (int i = 0; i < size; i++) {
+		if (*(int*)getPointer(s1, i) != v_int[i] ||
+			*(char*)getPointer(s2, i) != v_char[i] ||
+			*(char*)getPointer(s3, i) != v_char[i]) {
+			printf("Error: (Test 4) Value mismatch.\n");
+			result = 0;
+		}
+	}
+	freeString(s1);
+	freeString(s2);
+	freeString(s3);
+
 
 	if (result)
 		printf("Info: All tests passed successfully.\n");
@@ -96,6 +157,7 @@ int autoTestCreateAndGet(int n_tests, size_t max_size, unsigned int seed) {
 }
 
 int autoTestSetAndGet(int n_tests, size_t size, unsigned int seed) {
+	//Assuming getPointer and createZeros work correctly
 	if (!seed)
 		seed = time(NULL);
 	srand(seed);
@@ -104,12 +166,12 @@ int autoTestSetAndGet(int n_tests, size_t size, unsigned int seed) {
 	printf("Info: Starting SetAndGet autotest on seed %d.\n", seed);
 	int result = 1;
 
-	size_t element_size = sizeof(int);
-	int zero = 0;
+	int zero_int = 0;
+	char zero_char = ' ';
 	struct String* s;
 
-	//Random
-	s = createZeros(size, element_size, (void*)&zero);
+	//Random tests, int
+	s = createZeros(size, sizeof(int), (void*)&zero_int);
 	for (int test_i = 0; test_i < n_tests; test_i++) {
 		int x = rand();
 		size_t idx = rand() % size;
@@ -117,7 +179,7 @@ int autoTestSetAndGet(int n_tests, size_t size, unsigned int seed) {
 		//Value mismatch check
 		int* a = (int*)get(s, idx);
 		if (*a != x) {
-			printf("Error: Value mismatch on random values. ");
+			printf("Error: (Random) Wrong value. ");
 			printf("Expected %d, got %d.\n", x, *a);
 			result = 0;
 			break;
@@ -126,73 +188,36 @@ int autoTestSetAndGet(int n_tests, size_t size, unsigned int seed) {
 	}
 	freeString(s);
 
-	//Boundary values (Indexes of 0 and 1)
-	s = createZeros(1, element_size, (void*)&zero);
-	free(get(s, 0));
-	set(s, 0, (void*)&zero);
+	//Other tests
+	//Test 1
+	char x_char = 'a';
+	s = createZeros(1, sizeof(char), (void*)&zero_char);
+	set(s, 0, (void*)&x_char);
+	char* p = (char*)get(s, 0);
+	if (*(char*)getPointer(s, 0) != x_char ||
+		*p != x_char ||
+		getChar(s, 0) != x_char) {
+		printf("Error: (Test 1) Wrong value.\n");
+		result = 0;
+	}
+	free(p);
 	freeString(s);
 
-	if (result)
-		printf("Info: All tests passed successfully.\n");
-	else
-		printf("Info: At least one error occured during the tests.\n");
-	return result;
-}
-
-int autoTestCopy(int n_tests, size_t max_size, unsigned int seed) {
-	if (!seed)
-		seed = time(NULL);
-	srand(seed);
-
-	printf("\nCopy autotest:\n");
-	printf("Info: Starting Copy autotest on seed %d.\n", seed);
-	int result = 1;
-
-	size_t size;
-	size_t element_size = sizeof(int);
-	int zero = 0;
-	struct String* s;
-	struct String* s_copy;
-
-	//Random
-	for (int test_i = 0; test_i < n_tests; test_i++) {
-		size = rand() % max_size;
-		int* values = malloc(size * sizeof(int));
-		for (int i = 0; i < size; i++)
-			values[i] = rand();
-		s = createFromValues(size, element_size, (void*)&zero, (void*)values);
-		s_copy = copy(s);
-		//Size mismatch chek
-		if (getSize(s_copy) != size) {
-			printf("Error: Size mismatch on random values. ");
-			printf("Expected %d, got %d.\n", size, getSize(s_copy));
+	//Test 2
+	size = 3;
+	char v_char[] = "abc";
+	s = createZeros(size, sizeof(char), (void*)&zero_char);
+	for (int i = 0; i < size; i++) {
+		set(s, i, &v_char[i]);
+		char* p = (char*)get(s, i);
+		if (*(char*)getPointer(s, i) != v_char[i] ||
+			*p != v_char[i] ||
+			getChar(s, i) != v_char[i]) {
+			printf("Error: (Test 2) Wrong value.\n");
 			result = 0;
 		}
-		//Value mismatch check
-		for (int i = 0; i < size; i++) {
-			int* x = (int*)get(s_copy, i);
-			if (*x != values[i]) {
-				printf("Error: Value mismatch on random values. ");
-				printf("Expected %d, got %d.\n", values[i], *x);
-				result = 0;
-				free(x);
-				break;
-			}
-			free(x);
-		}
-		free(values);
-		freeString(s);
-		freeString(s_copy);
-		if (!result)
-			break;
+		free(p);
 	}
-
-	//Boundary values (Sizes of 0 and 1)
-	s = createZeros(0, element_size, (void*)&zero);
-	freeString(copy(s));
-	freeString(s);
-	s = createZeros(1, element_size, (void*)&zero);
-	freeString(copy(s));
 	freeString(s);
 
 	if (result)
@@ -203,6 +228,7 @@ int autoTestCopy(int n_tests, size_t max_size, unsigned int seed) {
 }
 
 int autoTestEquals(int n_tests, size_t max_size, unsigned int seed) {
+	//Assuming createZeros and createFromValues work correctly 
 	if (!seed)
 		seed = time(NULL);
 	srand(seed);
@@ -212,32 +238,29 @@ int autoTestEquals(int n_tests, size_t max_size, unsigned int seed) {
 	int result = 1;
 
 	size_t size;
-	size_t element_size = sizeof(int);
-	int zero = 0;
+	int zero_int = 0;
+	char zero_char = ' ';
 	struct String* s;
 	struct String* s_equal;
 	struct String* s_not_equal;
 
-	//Random
+	//Random tests, int
 	for (int test_i = 0; test_i < n_tests; test_i++) {
 		size = rand() % (max_size - 1) + 1;
 		int* values = malloc(size * sizeof(int));
 		for (int i = 0; i < size; i++)
 			values[i] = rand();
-		s = createFromValues(size, element_size, (void*)&zero, (void*)values);
+		s = createFromValues(size, sizeof(int), (void*)&zero_int, (void*)values);
+		s_equal = createFromValues(size, sizeof(int), (void*)&zero_int, (void*)values);
+		values[0] += 1;
+		s_not_equal = createFromValues(size, sizeof(int), (void*)&zero_int, (void*)values);
 		free(values);
-		s_equal = copy(s);
-		s_not_equal = copy(s);
-		int* x = (int*)get(s_not_equal, 0);
-		*x += 1;
-		set(s_not_equal, 0, (void*)x);
-		free(x);
 		if (!equals(s, s_equal)) {
-			printf("Error: Equal strings aren't equal.\n");
+			printf("Error: (Random) Equal strings aren't equal.\n");
 			result = 0;
 		}
 		if (equals(s, s_not_equal)) {
-			printf("Error: Not equal strings are equal.\n");
+			printf("Error: (Random) Not equal strings are equal.\n");
 			result = 0;
 		}
 		freeString(s);
@@ -247,19 +270,121 @@ int autoTestEquals(int n_tests, size_t max_size, unsigned int seed) {
 			break;
 	}
 
-	//Boundary values (Sizes of 0 and 1)
-	s = createZeros(0, element_size, (void*)&zero);
-	if (!equals(s, s)) {
-		printf("Error: Empty string isn't equal to itself.\n");
+	//Other tests
+	//Test 1
+	s = createZeros(0, sizeof(char), (void*)&zero_char);
+	s_equal = createZeros(0, sizeof(char), (void*)&zero_char);
+	if (!equals(s, s_equal)) {
+		printf("Error: (Test 1) Empty strings aren't equal.\n");
 		result = 0;
 	}
 	freeString(s);
-	s = createZeros(1, element_size, (void*)&zero);
-	if (!equals(s, s)) {
-		printf("Error: One symbol string isn't equal to itself.\n");
+	freeString(s_equal);
+
+	//Test 2
+	size = 3;
+	char v_char[] = "abc";
+	s = createFromValues(size, sizeof(char), (void*)&zero_char, (void*)v_char);
+	s_equal = createFromValues(size, sizeof(char), (void*)&zero_char, (void*)v_char);
+	v_char[0] = 'd';
+	s_not_equal = createFromValues(size, sizeof(char), (void*)&zero_char, (void*)v_char);
+	if (!equals(s, s_equal)) {
+		printf("Error: (Test 2) Equal strings aren't equal.\n");
+		result = 0;
+	}
+	if (equals(s, s_not_equal)) {
+		printf("Error: (Test 2) Not equal strings are equal.\n");
 		result = 0;
 	}
 	freeString(s);
+	freeString(s_equal);
+
+	//Test 3
+	size = 3;
+	int v_int[] = {1, 2, 3};
+	s = createFromValues(size, sizeof(char), (void*)&zero_int, (void*)v_int);
+	s_equal = createFromValues(size, sizeof(char), (void*)&zero_int, (void*)v_int);
+	v_int[0] = 4;
+	s_not_equal = createFromValues(size, sizeof(char), (void*)&zero_int, (void*)v_int);
+	if (!equals(s, s_equal)) {
+		printf("Error: (Test 3) Equal strings aren't equal.\n");
+		result = 0;
+	}
+	if (equals(s, s_not_equal)) {
+		printf("Error: (Test 3) Not equal strings are equal.\n");
+		result = 0;
+	}
+	freeString(s);
+	freeString(s_equal);
+
+	if (result)
+		printf("Info: All tests passed successfully.\n");
+	else
+		printf("Info: At least one error occured during the tests.\n");
+	return result;
+}
+
+int autoTestCopy(int n_tests, size_t max_size, unsigned int seed) {
+	//Assuming createZeros, createFromValues and copy work correctly 
+	if (!seed)
+		seed = time(NULL);
+	srand(seed);
+
+	printf("\nCopy autotest:\n");
+	printf("Info: Starting Copy autotest on seed %d.\n", seed);
+	int result = 1;
+
+	size_t size;
+	int zero_int = 0;
+	char zero_char = ' ';
+	struct String* s;
+	struct String* s_copy;
+
+	//Random test, int
+	for (int test_i = 0; test_i < n_tests; test_i++) {
+		size = rand() % max_size;
+		int* values = malloc(size * sizeof(int));
+		for (int i = 0; i < size; i++)
+			values[i] = rand();
+		s = createFromValues(size, sizeof(int), (void*)&zero_int, (void*)values);
+		s_copy = copy(s);
+		if (!equals(s, s_copy)) {
+			printf("Error: (Random) Copy of a string isn't equal to original string.\n");
+			result = 0;
+		}
+		free(values);
+		freeString(s);
+		freeString(s_copy);
+		if (!result)
+			break;
+	}
+
+	//Other tests
+	//Test 1
+	s = createZeros(0, sizeof(char), (void*)&zero_char);
+	freeString(copy(s));
+
+	//Test 2
+	s = createZeros(0, sizeof(char), (void*)&zero_char);
+	s_copy = copy(s);
+	if (!equals(s, s_copy)) {
+		printf("Error: (Test 2) Copy of an empty string isn't equal to original string.\n");
+		result = 0;
+	}
+	freeString(s);
+	freeString(s_copy);
+
+	//Test 3
+	size = 3;
+	char v_char[] = "abc";
+	s = createFromValues(size, sizeof(char), (void*)&zero_char, (void*)v_char);
+	s_copy = copy(s);
+	if (!equals(s, s_copy)) {
+		printf("Error: (Test 3) Copy of a string isn't equal to original string.\n");
+		result = 0;
+	}
+	freeString(s);
+	freeString(s_copy);
 
 	if (result)
 		printf("Info: All tests passed successfully.\n");
@@ -269,6 +394,7 @@ int autoTestEquals(int n_tests, size_t max_size, unsigned int seed) {
 }
 
 int autoTestFill(int n_tests, size_t max_size, unsigned int seed) {
+	//Assuming getPointer createZeros, createFromValues and equals work correctly
 	if (!seed)
 		seed = time(NULL);
 	srand(seed);
@@ -278,43 +404,76 @@ int autoTestFill(int n_tests, size_t max_size, unsigned int seed) {
 	int result = 1;
 
 	size_t size;
-	size_t element_size = sizeof(int);
-	int zero = 0;
+	int zero_int = 0;
+	char zero_char = ' ';
 	struct String* s;
-	int fill_value;
+	int fill_value_int;
+	char fill_value_char;
 
-	//Random
+	//Random test, int
 	for (int test_i = 0; test_i < n_tests; test_i++) {
 		size = rand() % max_size;
-		s = createZeros(size, element_size, (void*)&zero);
-		fill_value = rand();
-		fill(s, (void*)&fill_value);
+		s = createZeros(size, sizeof(int), (void*)&zero_int);
+		fill_value_int = rand();
+		fill(s, (void*)&fill_value_int);
 		//Value mismatch check
 		for (int i = 0; i < size; i++) {
-			int* x = (int*)get(s, i);
-			if (*x != fill_value) {
-				printf("Error: Value mismatch on random values. ");
-				printf("Expected %d, got %d.\n", fill_value, *x);
+			int* x = (int*)getPointer(s, i);
+			if (*x != fill_value_int) {
+				printf("Error: (Random) Wrong value. ");
+				printf("Expected %d, got %d.\n", fill_value_int, *x);
 				result = 0;
-				free(x);
 				break;
 			}
-			free(x);
 		}
 		freeString(s);
 		if (!result)
 			break;
 	}
 	
-	//Boundary values (Indexes of 0 and 1)
-	fill_value = 1;
-	s = createZeros(0, element_size, (void*)&zero);
-	fill(s, (void*)&fill_value);
-	freeString(s);
-	s = createZeros(1, element_size, (void*)&zero);
-	fill(s, (void*)&fill_value);
-	freeString(s);	
+	//Other tests
+	struct  String* s_target;
 
+	//Test 1
+	fill_value_char = 'a';
+	s = createZeros(0, sizeof(char), (void*)&zero_char);
+	fill(s, (void*)&fill_value_char);
+	freeString(s);
+
+	//Test 2
+	size = 3;
+	char v_char[] = "abc";
+	char v_char_target[] = "aaa";
+	fill_value_char = 'a';
+	s = createFromValues(size, sizeof(char),
+		(void*)&zero_char, (void*)v_char);
+	s_target = createFromValues(size, sizeof(char),
+		(void*)&zero_char, (void*)v_char_target);
+	fill(s, (void*)&fill_value_char);
+	if (!equals(s, s_target)) {
+		printf("Error: (Test 2) Result isn;t equal to a target.\n");
+		result = 0;
+	}
+	freeString(s);
+	freeString(s_target);
+
+	//Test 3
+	size = 3;
+	int v_int[] = {1, 2, 3};
+	int v_int_target[] = {1, 1, 1};
+	fill_value_int = 1;
+	s = createFromValues(size, sizeof(int),
+		(void*)&zero_int, (void*)v_int);
+	s_target = createFromValues(size, sizeof(int),
+		(void*)&zero_int, (void*)v_int_target);
+	fill(s, (void*)&fill_value_int);
+	if (!equals(s, s_target)) {
+		printf("Error: (Test 3) Result isn;t equal to a target.\n");
+		result = 0;
+	}
+	freeString(s);
+	freeString(s_target);
+	
 	if (result)
 		printf("Info: All tests passed successfully.\n");
 	else
@@ -323,6 +482,7 @@ int autoTestFill(int n_tests, size_t max_size, unsigned int seed) {
 }
 
 int autoTestSwap(int n_tests, size_t max_size, unsigned int seed) {
+	//Assuming getPointer createZeros, createFromValues and equals work correctly
 	if (!seed)
 		seed = time(NULL);
 	srand(seed);
@@ -332,59 +492,95 @@ int autoTestSwap(int n_tests, size_t max_size, unsigned int seed) {
 	int result = 1;
 
 	size_t size;
-	size_t element_size = sizeof(int);
-	int zero = 7;
+	int zero_int = 0;
+	char zero_char = ' ';
 	struct String* s;
 
-	//Random
+	//Random test, int
 	for (int test_i = 0; test_i < n_tests; test_i++) {
 		size = rand() % (max_size - 1) + 1;
 		int* values = malloc(size * sizeof(int));
 		for (int i = 0; i < size; i++)
 			values[i] = rand();
-		s = createFromValues(size, element_size, (void*)&zero, (void*)values);
+		s = createFromValues(size, sizeof(int), (void*)&zero_int, (void*)values);
 		free(values);
 		int a_id = rand() % size;
 		int b_id = rand() % size;
 		struct String* s_old = copy(s);
-		int* a_old = (int*)get(s, a_id);
-		int* b_old = (int*)get(s, b_id);
+		int* a = (int*)getPointer(s, a_id);
+		int* b = (int*)getPointer(s, b_id);
+		int a_old = *a;
+		int b_old = *b;
 		swap(s, a_id, b_id);
-		int* a = (int*)get(s, a_id);
-		int* b = (int*)get(s, b_id);
+		
 		//Target elements check
-		if (*a != *b_old || *b != *a_old) {
-			printf("Error: Target elements weren't swapped correctly on random values.\n");
+		if (*a != b_old || *b != a_old) {
+			printf("Error: (Random) Target elements weren't swapped correctly.\n");
 			result = 0;
 		}
 		//Rest elements check
-		set(s, a_id, a_old);
-		set(s, b_id, b_old);
+		set(s, a_id, &a_old);
+		set(s, b_id, &b_old);
 		if (!equals(s, s_old)) {
-			printf("Error: More then two elements were swapped.\n");
+			printf("Error: (Random) More then two elements were swapped.\n");
 			result = 0;
 		}
-		free(a_old);
-		free(b_old);
-		free(a);
-		free(b);
 		freeString(s);
 		freeString(s_old);
 		if (!result)
 			break;
 	}
 
-	//Boundary values
-	s = createZeros(2, element_size, (void*)&zero);
-	swap(s, 0, 1);
-	freeString(s);
-	s = createZeros(1, element_size, (void*)&zero);
+	//Other tests
+	struct  String* s_target;
+
+	//Test 1
+	size = 1;
+	char v_char[] = "a";
+	char v_char_target[] = "a";
+	s = createFromValues(size, sizeof(char),
+		(void*)&zero_char, (void*)v_char);
+	s_target = createFromValues(size, sizeof(char),
+		(void*)&zero_char, (void*)v_char_target);
 	swap(s, 0, 0);
-	if (!equals(s, s)) {
-		printf("Error: Swaping elements with same indexes changes string.\n");
+	if (!equals(s, s_target)) {
+		printf("Error: (Test 1) Result isn;t equal to a target.\n");
 		result = 0;
 	}
 	freeString(s);
+	freeString(s_target);
+
+	//Test 2
+	size = 3;
+	char v_char_2[] = "abc";
+	char v_char_target_2[] = "acb";
+	s = createFromValues(size, sizeof(char),
+		(void*)&zero_char, (void*)v_char_2);
+	s_target = createFromValues(size, sizeof(char),
+		(void*)&zero_char, (void*)v_char_target_2);
+	swap(s, 1, 2);
+	if (!equals(s, s_target)) {
+		printf("Error: (Test 2) Result isn;t equal to a target.\n");
+		result = 0;
+	}
+	freeString(s);
+	freeString(s_target);
+
+	//Test 3
+	size = 3;
+	int v_int[] = {1, 2, 3};
+	int v_int_target[] = {1, 3, 2};
+	s = createFromValues(size, sizeof(int),
+		(void*)&zero_int, (void*)v_int);
+	s_target = createFromValues(size, sizeof(int),
+		(void*)&zero_int, (void*)v_int_target);
+	swap(s, 1, 2);
+	if (!equals(s, s_target)) {
+		printf("Error: (Test 3) Result isn;t equal to a target.\n");
+		result = 0;
+	}
+	freeString(s);
+	freeString(s_target);
 
 	if (result)
 		printf("Info: All tests passed successfully.\n");
@@ -394,6 +590,7 @@ int autoTestSwap(int n_tests, size_t max_size, unsigned int seed) {
 }
 
 int autoTestReverse(int n_tests, size_t max_size, unsigned int seed) {
+	//Assuming createZeros, createFromValues and equals work correctly
 	if (!seed)
 		seed = time(NULL);
 	srand(seed);
@@ -403,41 +600,29 @@ int autoTestReverse(int n_tests, size_t max_size, unsigned int seed) {
 	int result = 1;
 
 	size_t size;
-	size_t element_size = sizeof(int);
-	int zero = 0;
+	int zero_int = 0;
+	char zero_char = ' ';
 	struct String* s;
 	struct String* rev;
 
-	//Random
+	//Random test, int
 	for (int test_i = 0; test_i < n_tests; test_i++) {
 		size = rand() % max_size;
 		int* values = malloc(size * sizeof(int));
-		for (int i = 0; i < size; i++)
-			values[i] = rand();
-		s = createFromValues(size, element_size, (void*)&zero, (void*)values);
-		free(values);
-		rev = copy(s);
-		reverse(rev);
-
-		//Value mismatch check
+		int* values_rev = malloc(size * sizeof(int));
 		for (int i = 0; i < size; i++) {
-			int* a = (int*)get(s, i);
-			int* b = (int*)get(rev, size - i - 1);
-			if (*a != *b) {
-				printf("Error: Value mismatch on random values. ");
-				printf("Expected %d, got %d.\n", *a, *b);
-				result = 0;
-				free(a);
-				free(b);
-				break;
-			}
-			free(a);
-			free(b);
+			values[i] = rand();
+			values_rev[size - 1 - i] = values[i];
 		}
-		//Double reverse check
-		reverse(rev);
-		if (!equals(rev, s)) {
-			printf("Error: Double-reversed string isn't equal to original string.\n");
+		s = createFromValues(size, sizeof(int),
+			(void*)&zero_int, (void*)values);
+		rev = createFromValues(size, sizeof(int),
+			(void*)&zero_int, (void*)values_rev);
+		free(values);
+		free(values_rev);
+		reverse(s);
+		if (!equals(s, rev)) {
+			printf("Error: (Random) Result isn't equal to a target.\n");
 			result = 0;
 		}
 		freeString(s);
@@ -446,21 +631,56 @@ int autoTestReverse(int n_tests, size_t max_size, unsigned int seed) {
 			break;
 	}
 
-	//Boundary values
-	s = createZeros(0, element_size, (void*)&zero);
+	//Other tests
+	struct  String* s_target;
+
+	//Test 1
+	size = 1;
+	char v_char[] = "a";
+	char v_char_target[] = "a";
+	s = createFromValues(size, sizeof(char),
+		(void*)&zero_char, (void*)v_char);
+	s_target = createFromValues(size, sizeof(char),
+		(void*)&zero_char, (void*)v_char_target);
 	reverse(s);
-	if (!equals(s, s)) {
-		printf("Error: Reversed empty string isn't empty.\n");
+	if (!equals(s, s_target)) {
+		printf("Error: (Test 1) Result isn't equal to a target.\n");
 		result = 0;
 	}
 	freeString(s);
-	s = createZeros(1, element_size, (void*)&zero);
-	if (!equals(s, s)) {
-		printf("Error: Reversion of an one symbol string changes it.\n");
+	freeString(s_target);
+
+	//Test 2
+	size = 3;
+	char v_char_2[] = "abc";
+	char v_char_target_2[] = "cba";
+	s = createFromValues(size, sizeof(char),
+		(void*)&zero_char, (void*)v_char_2);
+	s_target = createFromValues(size, sizeof(char),
+		(void*)&zero_char, (void*)v_char_target_2);
+	reverse(s);
+	if (!equals(s, s_target)) {
+		printf("Error: (Test 2) Result isn't equal to a target.\n");
 		result = 0;
 	}
-	reverse(s);
 	freeString(s);
+	freeString(s_target);
+
+	//Test 3
+	size = 3;
+	int v_int[] = { 1, 2, 3 };
+	int v_int_target[] = { 3, 2, 1 };
+	s = createFromValues(size, sizeof(int),
+		(void*)&zero_int, (void*)v_int);
+	s_target = createFromValues(size, sizeof(int),
+		(void*)&zero_int, (void*)v_int_target);
+	reverse(s);
+	if (!equals(s, s_target)) {
+		printf("Error: (Test 3) Result isn't equal to a target.\n");
+		result = 0;
+	}
+	freeString(s);
+	freeString(s_target);
 
 	if (result)
 		printf("Info: All tests passed successfully.\n");
@@ -470,6 +690,7 @@ int autoTestReverse(int n_tests, size_t max_size, unsigned int seed) {
 }
 
 int autoTestConcatenate(int n_tests, size_t max_size, unsigned int seed) {
+	//Assuming createZeros, createFromValues and equals work correctly
 	if (!seed)
 		seed = time(NULL);
 	srand(seed);
@@ -480,95 +701,95 @@ int autoTestConcatenate(int n_tests, size_t max_size, unsigned int seed) {
 
 	size_t size_1;
 	size_t size_2;
-	size_t element_size = sizeof(int);
-	int zero = 0;
+	int zero_int = 0;
+	char zero_char = ' ';
 	struct String* s1;
 	struct String* s2;
+	struct String* s_concat;
 	struct String* s3;
 
-	//Random
+	//Random test, int
 	for (int test_i = 0; test_i < n_tests; test_i++) {
 		size_1 = rand() % max_size;
 		size_2 = rand() % max_size;
 		int* values_1 = malloc(size_1 * sizeof(int));
 		int* values_2 = malloc(size_2 * sizeof(int));
-		for (int i = 0; i < size_1; i++)
-			values_1[i] = rand();
-		for (int i = 0; i < size_2; i++)
-			values_2[i] = rand();
-		s1 = createFromValues(size_1, element_size, (void*)&zero, (void*)values_1);
-		s2 = createFromValues(size_2, element_size, (void*)&zero, (void*)values_2);
-		free(values_1);
-		free(values_2);
-		s3 = concatenate(s1, s2);
-		//Size check
-		if (size_1 + size_2 != getSize(s3)) {
-			printf("Error: Size mismatch on random values. ");
-			printf("Expected %d, got %d.\n", size_1 + size_2, getSize(s3));
-			result = 0;
-		}
-		//Value mismatch check
+		int* values_concat = malloc((size_1 + size_2) * sizeof(int));
 		for (int i = 0; i < size_1; i++) {
-			int* a = (int*)get(s1, i);
-			int* b = (int*)get(s3, i);
-			if (*a != *b) {
-				printf("Error: Value mismatch on random values. ");
-				printf("Expected %d, got %d.\n", *a, *b);
-				result = 0;
-				free(a);
-				free(b);
-				break;
-			}
-			free(a);
-			free(b);
+			values_1[i] = rand();
+			values_concat[i] = values_1[i];
 		}
 		for (int i = 0; i < size_2; i++) {
-			int* a = (int*)get(s2, i);
-			int* b = (int*)get(s3, size_1 + i);
-			if (*a != *b) {
-				printf("Error: Value mismatch on random values. ");
-				printf("Expected %d, got %d.\n", *a, *b);
-				result = 0;
-				free(a);
-				free(b);
-				break;
-			}
-			free(a);
-			free(b);
+			values_2[i] = rand();
+			values_concat[size_1 + i] = values_2[i];
+		}
+		s1 = createFromValues(size_1, sizeof(int),
+			(void*)&zero_int, (void*)values_1);
+		s2 = createFromValues(size_2, sizeof(int),
+			(void*)&zero_int, (void*)values_2);
+		s_concat = createFromValues(size_1 + size_2, sizeof(int),
+			(void*)&zero_int, (void*)values_concat);
+		free(values_1);
+		free(values_2);
+		free(values_concat);
+		s3 = concatenate(s1, s2);
+		if (!equals(s3, s_concat)) {
+			printf("Error: (Random) Result isn't equal to a target.\n");
+			result = 0;
 		}
 		freeString(s1);
 		freeString(s2);
 		freeString(s3);
+		freeString(s_concat);
 		if (!result)
 			break;
 	}
-	//Boundary values
-	s1 = createZeros(0, element_size, (void*)&zero);
-	s2 = createZeros(1, element_size, (void*)&zero);
 
-	s3 = concatenate(s1, s1);
-	if (!equals(s3, s1)) {
-		printf("Error: Concatination product of two empty strings isn't an empty string.\n");
-		result = 0;
-	}
-	freeString(s3);
+	//Other tests
+	struct String* s_target;
 
-	s3 = concatenate(s2, s1);
-	if (!equals(s3, s2)) {
-		printf("Error: Concatination of an empty string to other string changes that string.\n");
-		result = 0;
-	}
-	freeString(s3);
-
+	//Test 1
+	char v_char[] = "a";
+	s1 = createZeros(0, sizeof(char),
+		(void*)&zero_char);
+	s2 = createFromValues(1, sizeof(char),
+		(void*)&zero_char, (void*)v_char);
 	s3 = concatenate(s1, s2);
 	if (!equals(s3, s2)) {
-		printf("Error: Concatination of an empty string to other string changes that string.\n");
+		printf("Error: (Test 1) Result isn't equal to a target.\n");
 		result = 0;
 	}
 	freeString(s3);
-
+	s3 = concatenate(s2, s1);
+	if (!equals(s3, s2)) {
+		printf("Error: (Test 1) Result isn't equal to a target.\n");
+		result = 0;
+	}
 	freeString(s1);
 	freeString(s2);
+	freeString(s3);
+
+	//Test 2
+	size_1 = 3;
+	size_2 = 5;
+	char v_char_1[] = "abc";
+	char v_char_2[] = "defgh";
+	char v_char_target[] = "abcdefgh";
+	s1 = createFromValues(size_1, sizeof(char),
+		(void*)&zero_char, (void*)v_char_1);
+	s2 = createFromValues(size_2, sizeof(char),
+		(void*)&zero_char, (void*)v_char_2);
+	s_target = createFromValues(size_1 + size_2, sizeof(char),
+		(void*)&zero_char, (void*)v_char_target);
+	s3 = concatenate(s1, s2);
+	if (!equals(s3, s_target)) {
+		printf("Error: (Test 2) Result isn't equal to a target.\n");
+		result = 0;
+	}
+	freeString(s1);
+	freeString(s2);
+	freeString(s3);
+	freeString(s_target);
 
 	if (result)
 		printf("Info: All tests passed successfully.\n");
@@ -578,6 +799,7 @@ int autoTestConcatenate(int n_tests, size_t max_size, unsigned int seed) {
 }
 
 int autoTestSubString(int n_tests, size_t max_size, unsigned int seed) {
+	//Assuming createZeros, createFromValues and equals work correctly
 	if (!seed)
 		seed = time(NULL);
 	srand(seed);
@@ -587,58 +809,41 @@ int autoTestSubString(int n_tests, size_t max_size, unsigned int seed) {
 	int result = 1;
 
 	size_t size;
-	size_t element_size = sizeof(int);
-	int zero = 7;
+	int zero_int = 0;
+	char zero_char = ' ';
 	struct String* s;
 	struct String* s_sub;
+	struct String* s_target;
 
-	//Random
+	//Random test, int
 	for (int test_i = 0; test_i < n_tests; test_i++) {
 		size = rand() % (max_size - 1) + 1;
-		int* values = malloc(size * sizeof(int));
-		for (int i = 0; i < size; i++)
-			values[i] = rand();
-		s = createFromValues(size, element_size, (void*)&zero, (void*)values);
-		free(values);
 		int start = rand() % size;
 		int end = rand() % (size - start) + start;
+		int* values = malloc(size * sizeof(int));
+		int* values_sub = malloc((end - start + 1) * sizeof(int));
+		for (int i = 0; i < size; i++)
+			values[i] = rand();
+		for (int i = 0; i < end - start + 1; i++)
+			values_sub[i] = values[start + i];
+		s = createFromValues(size, sizeof(int),
+			(void*)&zero_int, (void*)values);
+		s_target = createFromValues(end - start + 1, sizeof(int),
+			(void*)&zero_int, (void*)values_sub);
+		free(values);
+		free(values_sub);
+		
 		s_sub = subString(s, start, end);
-		//Size mismatch cehk
-		if (getSize(s_sub) != end - start + 1) {
-			printf("Error: Size mismatch on random values. ");
-			printf("Expected %d, got %d.\n", end - start + 1, getSize(s_sub));
+		if (!equals(s_sub, s_target)) {
+			printf("Error: (Random) Result isn't equal to a target.\n");
 			result = 0;
-		}
-		//Value mismatch check
-		for (int i = 0; i < start - end + 1; i++) {
-			int* a = (int*)get(s, start + i);
-			int* b = (int*)get(s_sub, i);
-			if (*a != *b) {
-				printf("Error: Value mismatch on random values. ");
-				printf("Expected %d, got %d.\n", *a, *b);
-				result = 0;
-				free(a);
-				free(b);
-				break;
-			}
-			free(a);
-			free(b);
 		}
 		freeString(s);
 		freeString(s_sub);
+		freeString(s_target);
 		if (!result)
 			break;
 	}
-
-	//Boundary values
-	s = createZeros(1, element_size, (void*)&zero);
-	s_sub = subString(s, 0, 0);
-	if (!equals(s, s_sub)) {
-		printf("Error: Substring taken from start to end of a string isn't equal to that string.\n");
-		result = 0;
-	}
-	freeString(s);
-	freeString(s_sub);
 
 	if (result)
 		printf("Info: All tests passed successfully.\n");
@@ -654,6 +859,7 @@ void* exampleIntEncodingFunc(void* x) {
 }
 
 int autoTestEncode(int n_tests, size_t max_size, unsigned int seed) {
+	//Assuming createZeros, createFromValues and equals work correctly
 	if (!seed)
 		seed = time(NULL);
 	srand(seed);
@@ -663,122 +869,38 @@ int autoTestEncode(int n_tests, size_t max_size, unsigned int seed) {
 	int result = 1;
 
 	size_t size;
-	size_t element_size = sizeof(int);
-	int zero = 7;
+	int zero_int = 0;
+	char zero_char = ' ';
 	struct String* s;
 	struct String* s_encoded;
 
-	//Random
+	//Random test, int
 	for (int test_i = 0; test_i < n_tests; test_i++) {
 		size = rand() % max_size;
 		int* values = malloc(size * sizeof(int));
-		for (int i = 0; i < size; i++)
+		int* values_encoded = malloc(size * sizeof(int));
+		for (int i = 0; i < size; i++){
 			values[i] = rand();
-		s = createFromValues(size, element_size, (void*)&zero, (void*)values);
-		free(values);
-		s_encoded = copy(s);
-		encode(s_encoded, exampleIntEncodingFunc);
-		//Size mismatch cehk
-		if (getSize(s_encoded) != getSize(s)) {
-			printf("Error: Size mismatch on random values. ");
-			printf("Expected %d, got %d.\n", getSize(s), getSize(s_encoded));
-			result = 0;
+			int* p = (int*)exampleIntEncodingFunc((void*)&values[i]);
+			values_encoded[i] = *p;
+			free(p);
 		}
-		//Value mismatch check
-		for (int i = 0; i < size; i++) {
-			int* a = (int*)get(s, i);
-			int* b = (int*)get(s_encoded, i);
-			int* c = (int*)exampleIntEncodingFunc((void*)a);
-			if (*c != *b) {
-				printf("Error: Value mismatch on random values. ");
-				printf("Expected %d, got %d.\n", *b, *c);
-				result = 0;
-				free(a);
-				free(b);
-				free(c);
-				break;
-			}
-			free(a);
-			free(b);
-			free(c);
+		s = createFromValues(size, sizeof(int),
+			(void*)&zero_int, (void*)values);
+		s_encoded = createFromValues(size, sizeof(int),
+			(void*)&zero_int, (void*)values_encoded);
+		free(values);
+		free(values_encoded);
+		encode(s, exampleIntEncodingFunc);
+		if (!equals(s, s_encoded)) {
+			printf("Error: (Random) Result isn't equal to a target.\n");
+			result = 0;
 		}
 		freeString(s);
 		freeString(s_encoded);
 		if (!result)
 			break;
 	}
-
-	//Boundary values
-	s = createZeros(0, element_size, (void*)&zero);
-	s_encoded = copy(s);
-	encode(s_encoded, exampleIntEncodingFunc);
-	if (!equals(s, s_encoded)) {
-		printf("Error: Encoded empty string isn't empty.\n");
-		result = 0;
-	}
-	freeString(s);
-	freeString(s_encoded);
-
-	if (result)
-		printf("Info: All tests passed successfully.\n");
-	else
-		printf("Info: At least one error occured during the tests.\n");
-	return result;
-}
-
-int simpleCharAutoTest() {
-	printf("\nSimple char string autotest:\n");
-	printf("Info: Starting simple char string autotest.\n");
-	int result = 1;
-
-	struct String* s;
-	char* p;
-	char c;
-
-	s = createZerosChar(1);
-	if (*(char*)get(s, 0) != ' ' || getSize(s) != 1) {
-		result = 0;
-		printf("Error: Error in createZerosChar.\n");
-	}
-	freeString(s);
-
-	s = createFromValuesChar(11, "Lorem ipsum");
-	char* values = "Lorem ipsum";
-	for (int i = 0; i < getSize(s); i++) {
-		if (*(char*)get(s, i) != values[i]) {
-			result = 0;
-			printf("Error: Error in createFromValuesChar.\n");
-			break;
-		}
-	}
-	if (getSize(s) != 11) {
-		result = 0;
-		printf("Error: Error in createFromValuesChar.\n");
-	}
-
-	for (int i = 0; i < getSize(s); i++) {
-		if (getChar(s, i) != values[i]) {
-			result = 0;
-			printf("Error: Error in getChar.\n");
-			break;
-		}
-	}
-
-	setChar(s, 0, 'M');
-	if (*(char*)get(s, 0) != 'M') {
-		result = 0;
-		printf("Error: Error in setChar.\n");
-	}
-
-	fillChar(s, 'O');
-	for (int i = 0; i < getSize(s); i++) {
-		if (*(char*)get(s, i) != 'O') {
-			result = 0;
-			printf("Error: Error in setChar.\n");
-			break;
-		}
-	}
-	freeString(s);
 
 	if (result)
 		printf("Info: All tests passed successfully.\n");
@@ -795,17 +917,16 @@ int autoTestAll(int n_tests, size_t max_size, unsigned int seed) {
 	printf("String autotests:\n");
 	
 	int result = 1;
-	result *= autoTestCreateAndGet(n_tests, max_size, seed);
+	result *= autoTestCreate(n_tests, max_size, seed);
 	result *= autoTestSetAndGet(n_tests, max_size, seed);
-	result *= autoTestCopy(n_tests, max_size, seed);
 	result *= autoTestEquals(n_tests, max_size, seed);
+	result *= autoTestCopy(n_tests, max_size, seed);
 	result *= autoTestFill(n_tests, max_size, seed);
 	result *= autoTestSwap(n_tests, max_size, seed);
 	result *= autoTestReverse(n_tests, max_size, seed);
 	result *= autoTestConcatenate(n_tests, max_size, seed);
 	result *= autoTestSubString(n_tests, max_size, seed);
 	result *= autoTestEncode(n_tests, max_size, seed);
-	result *= simpleCharAutoTest();
 
 
 	if (result)

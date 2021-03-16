@@ -30,7 +30,7 @@ void* makeItCaps(void* x) {
     return (void*)y;
 }
 
-int main() {
+void launchInterpreter() {
     struct String* s = createZerosChar(0);
     while (1) {
         printf("String: ");
@@ -42,7 +42,7 @@ int main() {
         char command[32];
         printf("(user): ");
         scanf_s("%s", command, 32);
-        
+
         if (!strcmp(command, "createFromValues") || !strcmp(command, "=")) { // createFromValues
             char values[256];
             for (int i = 0; i < 256; i++)
@@ -148,7 +148,7 @@ int main() {
             else
                 printf("Error:  Dir variable should be 'r' or 'l', got %c.\n", dir);
             freeString(s2);
-            
+
         }
         else if (!strcmp(command, "sub") || !strcmp(command, "subString")) { // subString
             int a = 0;
@@ -156,7 +156,7 @@ int main() {
             scanf_s(" %d", &a);
             scanf_s(" %d", &b);
             struct String* tmp;
-            if (a < getSize(s) && b < getSize(s) && a >= 0 && b >= 0){
+            if (a < getSize(s) && b < getSize(s) && a >= 0 && b >= 0) {
                 tmp = subString(s, a, b);
                 freeString(s);
                 s = tmp;
@@ -174,12 +174,11 @@ int main() {
             int n_tests = 0;
             size_t max_size = 0;
             int seed = 0;
-            if (n_tests >= 0 && max_size >= 0 && seed >= 0) {
-                scanf_s(" %d", &n_tests);
-                scanf_s(" %d", &max_size);
-                scanf_s(" %d", &seed);
+            scanf_s(" %d", &n_tests);
+            scanf_s(" %d", &max_size);
+            scanf_s(" %d", &seed);
+            if (n_tests >= 0 && max_size >= 2 && seed >= 0)
                 autoTestAll(n_tests, max_size, seed);
-            }
             else
                 printf("Error:  Invalid arguments.\n");
         }
@@ -208,4 +207,9 @@ int main() {
             printf("Error:  Unknown command. Try help for a list of commands.\n");
         }
     }
+}
+
+int main() {
+    autoTestAll(10, 10, 0);
+    launchInterpreter();
 }

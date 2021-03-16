@@ -64,10 +64,17 @@ void freeString(struct String* s) {
 
 int equals(struct String* s1, struct String* s2) {
 	if (s1->size == s2->size
-		&& s1->element_size == s2->element_size
-		&& s1->zero == s2->zero) {
+		&& s1->element_size == s2->element_size) {
 		int result = 1;
-		for (int i = 0; i < s1->size; i++) {
+		for (int i = 0; i < s1->element_size; i++) {
+			int8_t* a = (int8_t*)s1->zero + i;
+			int8_t* b = (int8_t*)s2->zero + i;
+			if (*a != *b) {
+				result = 0;
+				break;
+			}
+		}
+		for (int i = 0; i < s1->size * s1->element_size; i++) {
 			int8_t* a = (int8_t*)s1->values + i;
 			int8_t* b = (int8_t*)s2->values + i;
 			if (*a != *b) {
@@ -127,6 +134,7 @@ struct String* concatenate(struct String* s1, struct String* s2) {
 		int8_t* p = (int8_t*)values + s1->size * element_size;
 		memcpy((void*)p, s2->values, s2->size * element_size);
 		struct String* s3 = createFromValues(size, element_size, zero, values);
+		free(values);
 		return s3;
 	}
 	else {
@@ -140,11 +148,14 @@ struct String* subString(struct String* s, size_t i, size_t j) {
 	int8_t* p = (int8_t*)s->values + i * s->element_size;
 	memcpy(values, (void*)p, size * s->element_size);
 	struct String* s_sub = createFromValues(size, s->element_size, s->zero, values);
+	free(values);
 	return s_sub;
 }
 
 void encode(struct String* s, void* (*f)(void* x)) {
 	for (int i = 0; i < s->size; i++) {
-		set(s, i, f(get(s, i)));
+		void* p = f(getPointer(s, i));
+		set(s, i, p);
+		free(p);
 	}
 }
